@@ -1,9 +1,7 @@
 #!/bin/bash
 
-#apt-get update
-#apt-get upgrade -y
-#apt-get clean
-#rm -rf /var/lib/apt/lists/*
+#PX4DRV_VER=1.3
+PX4DRV_VER=1.4
 
 echo "make px4_drv"
 
@@ -15,15 +13,25 @@ mkdir -p ${BUILD_PATH}
 
 cd ${BUILD_PATH}
 #git clone -b develop https://github.com/nns779/px4_drv ${BUILD_PATH}
-git clone --depth 1 https://github.com/otya128/px4_drv.git ${BUILD_PATH}
+#git clone --depth 1 https://github.com/otya128/px4_drv.git ${BUILD_PATH}
+git clone --depth 1 https://github.com/tsukumijima/px4_drv.git ${BUILD_PATH}
+
 cd ./fwtool
+
 make
 #make ITEDTV_BUS_USE_WORKQUEUE=1
-wget http://plex-net.co.jp/download/pxw3u4v1.3.zip
-unzip -oj pxw3u4v1.3.zip x64/PXW3U4.sys
-#wget http://plex-net.co.jp/download/pxw3u4v1.4.zip
-#unzip -oj pxw3u4v1.4.zip pxw3u4v1/x64/PXW3U4.sys
-./fwtool PXW3U4.sys it930x-firmware.bin
+
+wget http://plex-net.co.jp/download/pxq3u4v${PX4DRV_VER}.zip
+# Ver 1.3
+#unzip -oj pxq3u4v${PX4DRV_VER}.zip x64/PXQ3U4.sys
+# Ver 1.4
+unzip -oj pxq3u4v${PX4DRV_VER}.zip pxq3u4v1/x64/PXQ3U4.sys
+
+#wget http://plex-net.co.jp/download/202104_PX-Q3U4_Driver.zip
+#unzip -oj 202104_PX-Q3U4_Driver.zip 202104_PX-Q3U4_Driver/x64/PXQ3U4.sys
+
+./fwtool PXQ3U4.sys it930x-firmware.bin
+
 cd ../driver
 make
 
