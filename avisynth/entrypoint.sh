@@ -3,7 +3,7 @@
 #SRC_DIR=/source
 #BUILD_PREFIX=/opt
 
-AVISYNTH_VER=v3.7.2
+AVISYNTH_VER=v3.7.3
 LSMASHWORKS_VER=20210423
 
 
@@ -12,9 +12,6 @@ mkdir ${SRC_DIR}
 # AviSynthPlus
 echo Build AviSynthPlus
 cd ${SRC_DIR}
-
-#apt-get update
-#apt-get install -y --no-install-recommends libdevil-dev
 
 git clone --depth 1 -b ${AVISYNTH_VER} https://github.com/AviSynth/AviSynthPlus.git
 cd AviSynthPlus
@@ -36,7 +33,7 @@ cd .. && rm -r build
 echo Build TIVTC
 cd ${SRC_DIR}
 
-git clone --depth 1 https://github.com/pinterf/TIVTC
+git clone --depth 1 https://github.com/pinterf/TIVTC.git
 cd TIVTC/src
 
 mkdir build && cd build
@@ -124,17 +121,17 @@ cd ${SRC_DIR}
 git clone --depth 1 https://github.com/FFMS/ffms2.git
 cd ffms2
 
-PKG_CONFIG_PATH="$BUILD_PREFIX/ffmpeg/n5.0/lib/pkgconfig" \
+PKG_CONFIG_PATH="$BUILD_PREFIX/ffmpeg/n6.1/lib/pkgconfig" \
 ./autogen.sh
 
-PKG_CONFIG_PATH="$BUILD_PREFIX/ffmpeg/n5.0/lib/pkgconfig" \
+PKG_CONFIG_PATH="$BUILD_PREFIX/ffmpeg/n6.1/lib/pkgconfig" \
 ./configure \
     --prefix="$BUILD_PREFIX/avisynth" \
     --enable-avisynth \
     --disable-static
 
-LD_LIBRARY_PATH="$BUILD_PREFIX/ffmpeg/n5.0/lib" \
-make -j$(nproc) CPPFLAGS="-I$BUILD_PREFIX/avisynth/include/avisynth"
+LD_LIBRARY_PATH="$BUILD_PREFIX/ffmpeg/n6.1/lib" \
+make -j$(nproc) CPPFLAGS="-I$BUILD_PREFIX/avisynth/include/avisynth" LIBS="$LIBS -L$BUILD_PREFIX/ffmpeg/n6.1/lib/pkgconfig/../../lib"
 make install
 
 ln -s /opt/avisynth/lib/libffms2.so /opt/avisynth/lib/avisynth/libffms2.so
@@ -144,7 +141,8 @@ ln -s /opt/avisynth/lib/libffms2.so /opt/avisynth/lib/avisynth/libffms2.so
 echo Build l-smash
 cd ${SRC_DIR}
 
-git clone --depth 1 https://github.com/l-smash/l-smash.git
+#git clone --depth 1 https://github.com/l-smash/l-smash.git
+git clone --depth 1 https://github.com/Mr-Ojii/l-smash.git
 cd l-smash
 
 ./configure \
@@ -161,12 +159,13 @@ make distclean
 echo Build L-SMASH-Works
 cd ${SRC_DIR}
 
-git clone --depth 1 -b ${LSMASHWORKS_VER} https://github.com/HolyWu/L-SMASH-Works.git
+#git clone --depth 1 -b ${LSMASHWORKS_VER} https://github.com/HolyWu/L-SMASH-Works.git
+git clone --depth 1 -b ${LSMASHWORKS_VER} https://github.com/Mr-Ojii/L-SMASH-Works.git
 cd L-SMASH-Works/AviSynth
 
 PKG_CONFIG_PATH="$BUILD_PREFIX/avisynth/lib/pkgconfig:$BUILD_PREFIX/ffmpeg/n4.4/lib/pkgconfig" \
 LDFLAGS="-Wl,-Bsymbolic" \
-meson \
+meson setup \
     --prefix="$BUILD_PREFIX/avisynth" \
     build
 
@@ -225,11 +224,10 @@ cd ${SRC_DIR}
 git clone --depth 1 https://github.com/tobitti0/delogo-AviSynthPlus-Linux.git
 cd delogo-AviSynthPlus-Linux/src
 
-sed -i -e "s/INSTALL_DIR = \/usr\/local\/lib\/avisynth\//INSTALL_DIR = $\(BUILD_PREFIX\)\/avisynth\/lib\/avisynth\//" Makefile
-sed -i -e "s/CC = gcc/CC = g++/" Makefile
 sed -i -e "s/\/usr\/local/\$\(BUILD_PREFIX\)\/avisynth/" Makefile
+sed -i -e "s/-std=gnu99/-std=c++11/" Makefile
 
-make -j$(nproc)
+make -j$(nproc) INSTALL_DIR="$BUILD_PREFIX/avisynth/lib/avisynth" CC="g++"
 make install
 
 
