@@ -7,7 +7,7 @@ mkdir ${SRC_DIR}
 
 # zimg
 echo Build zimg
-cd  ${SRC_DIR}
+cd ${SRC_DIR}
 
 git clone --depth 1 https://github.com/sekrit-twc/zimg.git --recursive
 cd zimg
@@ -48,10 +48,12 @@ cd ${SRC_DIR}
 git clone --depth 1 https://github.com/dubhater/D2VWitch.git
 cd D2VWitch
 
+sed -i s/"\['Core', 'GUI', 'Widgets'\]"/"'Widgets'"/ meson.build
+
 mkdir build && cd build
 
-PKG_CONFIG_PATH=$BUILD_PREFIX/d2vwitch/lib/pkgconfig:$BUILD_PREFIX/ffmpeg/n4.4/lib/pkgconfig \
-meson \
+PKG_CONFIG_PATH=$BUILD_PREFIX/d2vwitch/lib/pkgconfig:$BUILD_PREFIX/ffmpeg/n6.0/lib/pkgconfig \
+meson setup \
     --prefix=$BUILD_PREFIX/d2vwitch \
     ..
 
