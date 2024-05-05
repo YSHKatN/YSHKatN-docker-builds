@@ -1,0 +1,11 @@
+--- src/Cedar/Server.c	2021-08-17 13:50:53.000000000 +0000
++++ src/Cedar/Server.c	2022-01-13 16:54:22.235974457 +0000
+@@ -10917,7 +10917,7 @@
+ 		ret = true;
+ 	}
+ 
+-	return ret;
++	return false;
+ }
+ 
+ // Update the current region
