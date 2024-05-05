@@ -1,9 +1,8 @@
 #!/bin/bash
 
-#AVISYNTH_VER=v3.7.2
-LIBVA_VER=2.15.0
-GMMLIB_VER=22.1.7
-MEDIA_DRIVER_VER=22.4.4
+LIBVA_VER=2.21.0
+GMMLIB_VER=22.3.19
+MEDIA_DRIVER_VER=24.1.5
 
 mkdir ${SRC_DIR}
 
@@ -14,7 +13,7 @@ cd ${SRC_DIR}
 git clone --depth 1 https://gitlab.freedesktop.org/xorg/util/macros.git
 cd macros
 
-autoreconf -i
+./autogen.sh
 ./configure
 
 make -j$(nproc)
@@ -47,21 +46,37 @@ cd ${SRC_DIR}
 git clone --depth 1 https://gitlab.freedesktop.org/xorg/lib/libpciaccess.git
 cd libpciaccess
 
-autoreconf -fi
+mkdir build && cd build
 
-CFLAGS="-I$BUILD_PREFIX/include" \
-LDFLAGS="-L$BUILD_PREFIX/lib" \
+meson setup \
+    --prefix="$BUILD_PREFIX/qsv" \
+    -Dzlib=enabled \
+    ..
+
+ninja -j$(nproc)
+ninja install
+
+cd .. && rm -r build
+
+
+# libatomic_ops
+echo Build libatomic_ops
+cd ${SRC_DIR}
+
+git clone --depth 1 https://github.com/ivmai/libatomic_ops.git
+cd libatomic_ops/
+
+./autogen.sh
 ./configure \
     --prefix="$BUILD_PREFIX/qsv" \
     --enable-shared \
-    --disable-static \
-    --with-pic \
-    --with-zlib
+    --with-pic
 
 make -j$(nproc)
 make install
 
 make distclean
+
 
 # DRM (libdrm)
 echo Build DRM
@@ -71,31 +86,35 @@ git clone --depth 1 https://gitlab.freedesktop.org/mesa/drm.git libdrm
 
 mkdir -p libdrm/build && cd libdrm/build
 
-PKG_CONFIG_PATH="$BUILD_PREFIX/qsv/lib/pkgconfig" \
-meson \
-#    --prefix="$BUILD_PREFIX/drm" \
+PKG_CONFIG_PATH="$BUILD_PREFIX/qsv/lib/pkgconfig:$BUILD_PREFIX/qsv/lib64/pkgconfig" \
+meson setup \
+    --prefix="$BUILD_PREFIX/qsv" \
     -Ddefault_library=shared \
-    -Dlibkms=false \
+    -Dradeon=disabled \
     -Dudev=false \
-    -Dcairo-tests=false \
-    -Dvalgrind=false \
-    -Dexynos=false \
-    -Dfreedreno=false \
-    -Domap=false \
-    -Detnaviv=false \
-    -Dintel=true \
-    -Dnouveau=false \
-    -Dradeon=false \
-    -Damdgpu=false \
-    -Dman-pages=false \
+    -Dcairo-tests=disabled \
+    -Dvalgrind=disabled \
+    -Dexynos=disabled \
+    -Dfreedreno=disabled \
+    -Domap=disabled \
+    -Detnaviv=disabled \
+    -Dintel=enabled \
+    -Dnouveau=disabled \
+    -Dradeon=disabled \
+    -Damdgpu=disabled \
+    -Dvmwgfx=disabled \
+    -Dtegra=disabled \
+    -Dvc4=disabled \
+    -Dfreedreno-kgsl=false \
+    -Dman-pages=disabled \
+    -Dtests=false \
     -Dinstall-test-programs=false \
     ..
 
 ninja -j$(nproc)
 ninja install
 
-#cd ..
-#rm -r build
+cd .. && rm -r build
 
 # Libva
 echo Build Libva
@@ -104,12 +123,10 @@ cd ${SRC_DIR}
 git clone --depth 1 -b ${LIBVA_VER} https://github.com/intel/libva.git
 cd libva
 
-autoreconf -i
-
-PKG_CONFIG_PATH="$BUILD_PREFIX/drm/lib/pkgconfig:$BUILD_PREFIX/qsv/lib/pkgconfig" \
+PKG_CONFIG_PATH="$BUILD_PREFIX/qsv/lib/pkgconfig:$BUILD_PREFIX/qsv/lib64/pkgconfig" \
 ./autogen.sh
 
-PKG_CONFIG_PATH="$BUILD_PREFIX/drm/lib/pkgconfig:$BUILD_PREFIX/qsv/lib/pkgconfig" \
+PKG_CONFIG_PATH="$BUILD_PREFIX/qsv/lib/pkgconfig:$BUILD_PREFIX/qsv/lib64/pkgconfig" \
 ./configure \
     --prefix="$BUILD_PREFIX/qsv" \
     --disable-static \
@@ -123,7 +140,8 @@ PKG_CONFIG_PATH="$BUILD_PREFIX/drm/lib/pkgconfig:$BUILD_PREFIX/qsv/lib/pkgconfig
 make -j$(nproc)
 make install
 
-#make distclean
+make distclean
+
 
 # Intel Graphics Memory Management Library (gmmlib)
 echo Build Intel Graphics Memory Management Library
@@ -142,6 +160,7 @@ make -j$(nproc)
 make install
 
 cd .. && rm -r build
+
 
 # Intel Media Driver for VAAPI
 echo Build Intel Media Driver for VAAPI
@@ -165,69 +184,6 @@ make install
 cd .. && rm -r build
 
 
-# DRM (libdrm) rebuild
-echo Build DRM
-cd ${SRC_DIR}/libdrm/build
-
-ninja uninstall
-cd .. && rm -r build
-
-mkdir build && cd build
-
-PKG_CONFIG_PATH="$BUILD_PREFIX/qsv/lib/pkgconfig" \
-meson \
-    --prefix="$BUILD_PREFIX/qsv" \
-    -Ddefault_library=shared \
-    -Dlibkms=false \
-    -Dudev=false \
-    -Dcairo-tests=false \
-    -Dvalgrind=false \
-    -Dexynos=false \
-    -Dfreedreno=false \
-    -Domap=false \
-    -Detnaviv=false \
-    -Dintel=true \
-    -Dnouveau=false \
-    -Dradeon=false \
-    -Damdgpu=false \
-    -Dman-pages=false \
-    -Dinstall-test-programs=false \
-    ..
-
-ninja -j$(nproc)
-ninja install
-
-cd .. && rm -r build
-
-
-# Libva rebuild
-echo Build Libva
-cd ${SRC_DIR}/libva
-
-make uninstall
-make distclean
-
-autoreconf -i
-
-PKG_CONFIG_PATH="$BUILD_PREFIX/qsv/lib/pkgconfig" \
-./autogen.sh
-
-PKG_CONFIG_PATH="$BUILD_PREFIX/qsv/lib/pkgconfig" \
-./configure \
-    --prefix="$BUILD_PREFIX/qsv" \
-    --disable-static \
-    --enable-shared \
-    --with-pic \
-    --disable-docs \
-    --enable-drm \
-    --disable-glx \
-    --disable-wayland
-
-make -j$(nproc)
-make install
-
-make distclean
-
 # OpenCL
 echo Build OpenCL
 cd ${SRC_DIR}
@@ -243,13 +199,13 @@ cd loader
 
 mkdir build && cd build
 cmake \
-    -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="$BUILD_PREFIX/qsv" \
     -DOPENCL_ICD_LOADER_HEADERS_DIR="$BUILD_PREFIX/qsv/include" \
     -DBUILD_SHARED_LIBS=ON \
     -DOPENCL_ICD_LOADER_PIC=ON \
     -DOPENCL_ICD_LOADER_BUILD_TESTING=OFF \
     ..
+#    -DCMAKE_BUILD_TYPE=Release \
 
 make -j$(nproc)
 make install
@@ -280,13 +236,33 @@ cd ${SRC_DIR}
 git clone --depth 1 https://github.com/Intel-Media-SDK/MediaSDK msdk
 mkdir msdk/build && cd msdk/build
 
-PKG_CONFIG_PATH="$BUILD_PREFIX/qsv/lib/pkgconfig" \
+PKG_CONFIG_PATH="$BUILD_PREFIX/qsv/lib/pkgconfig:$BUILD_PREFIX/qsv/lib64/pkgconfig" \
 cmake \
     -DCMAKE_INSTALL_PREFIX="$BUILD_PREFIX/qsv" \
     -DBUILD_SHARED_LIBS=ON \
     -DBUILD_DISPATCHER=ON \
     -DBUILD_SAMPLES=OFF \
     -DBUILD_TUTORIALS=OFF \
+    ..
+
+make -j$(nproc)
+make install
+
+cd .. && rm -r build
+
+
+# Intel oneVPL GPU Runtime
+echo Build Intel oneVPL GPU Runtime
+cd ${SRC_DIR}
+
+git clone --depth 1 https://github.com/oneapi-src/oneVPL-intel-gpu onevpl-gpu
+cd onevpl-gpu
+
+mkdir build && cd build
+
+PKG_CONFIG_PATH="$BUILD_PREFIX/qsv/lib/pkgconfig:$BUILD_PREFIX/qsv/lib64/pkgconfig" \
+cmake \
+    -DCMAKE_INSTALL_PREFIX="$BUILD_PREFIX/qsv" \
     ..
 
 make -j$(nproc)
@@ -304,15 +280,18 @@ cd oneVPL
 
 mkdir build && cd build
 
+PKG_CONFIG_PATH="$BUILD_PREFIX/qsv/lib/pkgconfig" \
 cmake \
     -DCMAKE_INSTALL_PREFIX="$BUILD_PREFIX/qsv" \
     -DBUILD_DISPATCHER=ON \
     -DBUILD_TOOLS=OFF \
-    -DBUILD_SHARED_LIBS=OFF \
+    -DBUILD_SHARED_LIBS=ON \
     -DBUILD_TESTS=OFF \
     -DBUILD_EXAMPLES=OFF \
-    -DINSTALL_EXAMPLE_CODE= OFF \
+    -DINSTALL_EXAMPLE_CODE=OFF \
     -DBUILD_PYTHON_BINDING=OFF \
+    -DENABLE_VA=ON \
+    -DENABLE_DRM=ON \
     ..
 #    -DBUILD_DEV=OFF \
 
@@ -321,35 +300,16 @@ make install
 
 cd .. && rm -r build
 
-# AviSynthPlus
-#echo Build AviSynthPlus
-#cd ${SRC_DIR}
-#
-#apt-get update
-#apt-get install -y --no-install-recommends libdevil-dev
-#
-#git clone --depth 1 -b ${AVISYNTH_VER} https://github.com/AviSynth/AviSynthPlus.git
-#cd AviSynthPlus
-#
-#mkdir build && cd build
-#
-#cmake \
-#    -DCMAKE_INSTALL_PREFIX="$BUILD_PREFIX" \
-#    -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
-#    ..
-#
-#make -j$(nproc)
-#make install
-
 
 ## QSVEncC
 echo Build QSVEncC
-cd $SRC_DIR
+cd ${SRC_DIR}
 
-git clone https://github.com/rigaya/QSVEnc --recursive
+git clone --depth 1 https://github.com/rigaya/QSVEnc --recursive
 cd QSVEnc
+#git checkout 43c58d0c4a1c913c73d6b18b59bba93e2bdec2b9
 
-PKG_CONFIG_PATH="$BUILD_PREFIX/avisynth/lib/pkgconfig:$BUILD_PREFIX/d2vwitch/lib/pkgconfig:$BUILD_PREFIX/qsv/lib/pkgconfig:$BUILD_PREFIX/qsv/lib/pkgconfig:$BUILD_PREFIX/ffmpeg/n4.4/lib/pkgconfig" \
+PKG_CONFIG_PATH="$BUILD_PREFIX/avisynth/lib/pkgconfig:$BUILD_PREFIX/d2vwitch/lib/pkgconfig:$BUILD_PREFIX/qsv/lib/pkgconfig:$BUILD_PREFIX/qsv/lib64/pkgconfig:$BUILD_PREFIX/ffmpeg/n5.1/lib/pkgconfig" \
 ./configure \
     --prefix="$BUILD_PREFIX/qsv" \
     --opencl-headers="$BUILD_PREFIX/qsv/include"
@@ -357,6 +317,7 @@ PKG_CONFIG_PATH="$BUILD_PREFIX/avisynth/lib/pkgconfig:$BUILD_PREFIX/d2vwitch/lib
 # make時にOpenCLのincludedディレクトリを認識しない
 ln -s $BUILD_PREFIX/qsv/include/CL /usr/include
 
+PKG_CONFIG_PATH="$BUILD_PREFIX/avisynth/lib/pkgconfig:$BUILD_PREFIX/d2vwitch/lib/pkgconfig:$BUILD_PREFIX/qsv/lib/pkgconfig:$BUILD_PREFIX/qsv/lib64/pkgconfig:$BUILD_PREFIX/ffmpeg/n5.1/lib/pkgconfig" \
 make -j$(nproc)
 make install
 
